@@ -24,7 +24,7 @@ from torch.autograd import Variable
 #Open Training 
 f = open('training.txt', 'r')
 training = True
-training_size = 59
+training_size = 60
 testing_size = 41
 control_size = 3
 xy = np.ones((training_size, control_size,2))
@@ -38,20 +38,26 @@ def findall(val):
 
 #read training line by line into input and output arrays
 for line in f:
-    if(line[0] == "S"):
+    if(line[0] == "S" or line[0] == "s"):
             count = count + 1
             count1 = 0
             count2 = 0
             count3 = 0
-    elif(training_size == count):
+            print(count)
+    elif(training_size == count + 1):
+      print("training over time for testing")
       count = -1
       training = False
       break
     elif(training and line != "/n" and line[0] == "x"):
+        print("xy:")
+        print(line)
         xy[count][count1][0] = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0])
         xy[count][count1][1] = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[1])
         count1 = count1 + 1
     elif(training and line != "" and line != "\n" and line[0] != "S"):
+        print("output:")
+        print(line)
         if(count2 % (control_size*2) < 4):
           output[count][count3] = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0])
           count3 = count3 + 1
@@ -59,16 +65,23 @@ for line in f:
 f.close()
 d = open('testing.txt', 'r')
 for line in d:
-  if(line[0] == "S"):
+  if(line[0] == "S" or line[0] == "s"):
             count = count + 1
             count1 = 0
             count2 = 0
-            count3 = 0            
+            count3 = 0  
+            print("training count:")          
+            print(count)
+            print(training)
   elif(not training and line != "/n" and line[0] == "x"):
+        print("testing_xy:")
+        print(line)
         xy_testing[count][count1][0] = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0])
         xy_testing[count][count1][1] = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[1])
         count1 = count1 + 1
   elif(not training and line != "" and line != "\n" and line[0] != "S"):
+        print("testing_output:")
+        print(line)
         if(count2 % (control_size*2) < 4):
           output_testing[count][count3] = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0])
           count3 = count3 + 1
@@ -111,21 +124,46 @@ poly = PolynomialFeatures(2)
 
 ########################################################################################################################
 
+# class MLPRegressorTorch(nn.Module):
+#     def __init__(self, input_size, hidden_size, output_size):
+#         super(MLPRegressorTorch, self).__init__()
+        
+#         self.flatten = nn.Flatten()
+#         self.linear_relu_stack = nn.Sequential(
+#             nn.Linear(input_size, output_size),
+          
+#             # nn.Linear(512, 512),
+#             # nn.ReLU(),
+#             # nn.Linear(512, 10),
+#         )
+#     def forward(self, x):
+#         x = self.flatten(x)
+#         logits = self.linear_relu_stack(x)
+#         return logits
+
 class MLPRegressorTorch(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super(MLPRegressorTorch, self).__init__()
         
         self.flatten = nn.Flatten()
-        self.linear_relu_stack = nn.Sequential(
-            nn.Linear(6, 12)
+        self.linear_relu_stack1 = nn.Sequential(
+          nn.Linear(input_size, hidden_size),
+          nn.Identity(),
+          nn.Linear(hidden_size, hidden_size),
+          nn.Identity(),
+          nn.Linear(hidden_size, hidden_size),
+          nn.Identity(),
+          nn.Linear(hidden_size, output_size)
+        )
+          
             # nn.Linear(512, 512),
             # nn.ReLU(),
             # nn.Linear(512, 10),
-        )
     def forward(self, x):
         x = self.flatten(x)
-        logits = self.linear_relu_stack(x)
+        logits = self.linear_relu_stack1(x)
         return logits
+
 
 X = Variable(torch.tensor(xy, dtype=torch.float))
 Y = Variable(torch.tensor(output, dtype=torch.float))
@@ -136,22 +174,22 @@ X_Testing = Variable(torch.tensor(xy_testing, dtype=torch.float))
 Y_Testing = Variable(torch.tensor(output_testing, dtype=torch.float))
 
 
-hidden_layer_sizes = 120
-max_iter=1000
+hidden_size = int((X_size)*2/3 + Y_size)
+max_iter=400
 learning_rate_init=0.0001
 
-snapshot = MLPRegressorTorch(input_size = X_size, hidden_size = hidden_layer_sizes, output_size=Y_size)
+snapshot = MLPRegressorTorch(input_size = X_size, hidden_size = hidden_size, output_size=Y_size)
 
 print(snapshot)
 optimizer = torch.optim.Adam(snapshot.parameters(), lr = learning_rate_init, weight_decay=0.0001)
-loss_fct = nn.GaussianNLLLoss()
+loss_fct = nn.L1Loss()
 
 training_samples = utils_data.TensorDataset(X,Y)
-data_loader_trn = utils_data.DataLoader(training_samples, shuffle=True)
+data_loader = utils_data.DataLoader(training_samples, shuffle=True)
 
 for iteration in range(max_iter):
         loss_total = 0
-        for batch_idx, (data, target) in enumerate(data_loader_trn):
+        for batch, (data, target) in enumerate(data_loader):
             training_x, training_y = data.float(), target.float()
             loss = loss_fct(snapshot(training_x), training_y.unsqueeze(1)) 
             optimizer.zero_grad()
@@ -160,7 +198,7 @@ for iteration in range(max_iter):
             loss_total += loss.item()
             
         if iteration % 10 == 0:
-            print ('Iteration %d/%d, Current_Loss: %.4f' %(iteration+1, max_iter, loss_total))
+            print ('Iteration %d/%d, Loss: %.4f' %(iteration, max_iter, loss_total))
 
 
 # final_prediction = snapshot(X)
@@ -175,5 +213,15 @@ for iteration in range(max_iter):
 # data = [[1, 2], [3, 4]]
 final_prediction = snapshot(X_Testing)
 final_pred_np = final_prediction.clone().detach().numpy()
+
+# print("training input:")
+# print(X)
+# print("training output:")
+# print(Y)
+# print("mean absolute error:")
 print(mean_absolute_error(Y_Testing, final_pred_np))
-# print(snapshot(X_Testing[0]).clone().detach().numpy())
+
+print("predicted:")
+print(snapshot(X_Testing)[0])
+print("actual")
+print(Y_Testing[0])
