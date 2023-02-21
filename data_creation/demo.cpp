@@ -8,7 +8,7 @@ using namespace std;
 
 int main()
 {	int control_size = 3;
-	int size = 100;
+	int size = 500;
 	std::vector<Eigen::Vector2d> input(control_size);
 	// input[0] << 3.1, 3.6;
 	// input[1] << 4.3, 5.1;
@@ -34,6 +34,11 @@ int main()
 		}
 	std::vector<std::vector<Eigen::Vector2d>> bezierClosed = KCURVE::kCurveClosed(input);
 	i = 0;
+	//delete and redo any bezier with nan values
+	if(isnan(bezierClosed[0][0][0])) {
+		j = j-1;
+		continue;
+	}
 	myfile << "Set of " << j << std::endl;
 
 		for (auto& seg : bezierClosed)
