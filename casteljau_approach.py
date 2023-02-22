@@ -24,12 +24,12 @@ from torch.autograd import Variable
 #Open Training 
 f = open('training.txt', 'r')
 training = True
-training_size = 60
-testing_size = 41
+training_size = 10000
+testing_size = 460
 control_size = 3
-xy = np.ones((training_size, control_size,2))
+xy = np.ones((training_size, control_size, 2))
 output = np.ones((training_size, control_size * 4))
-xy_testing = np.ones((testing_size, control_size,2))
+xy_testing = np.ones((testing_size, control_size, 2))
 output_testing = np.ones((testing_size, control_size * 4))
 
 count, count1, count2 = -1,0,0
@@ -43,21 +43,21 @@ for line in f:
             count1 = 0
             count2 = 0
             count3 = 0
-            print(count)
+            # print(count)
     elif(training_size == count + 1):
       print("training over time for testing")
       count = -1
       training = False
       break
     elif(training and line != "/n" and line[0] == "x"):
-        print("xy:")
-        print(line)
+        # print("xy:")
+        # print(line)
         xy[count][count1][0] = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0])
         xy[count][count1][1] = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[1])
         count1 = count1 + 1
     elif(training and line != "" and line != "\n" and line[0] != "S"):
-        print("output:")
-        print(line)
+        # print("output:")
+        # print(line)
         if(count2 % (control_size*2) < 4):
           output[count][count3] = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0])
           count3 = count3 + 1
@@ -70,18 +70,18 @@ for line in d:
             count1 = 0
             count2 = 0
             count3 = 0  
-            print("training count:")          
-            print(count)
-            print(training)
+            # print("training count:")          
+            # print(count)
+            # print(training)
   elif(not training and line != "/n" and line[0] == "x"):
-        print("testing_xy:")
-        print(line)
+        # print("testing_xy:")
+        # print(line)
         xy_testing[count][count1][0] = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0])
         xy_testing[count][count1][1] = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[1])
         count1 = count1 + 1
   elif(not training and line != "" and line != "\n" and line[0] != "S"):
-        print("testing_output:")
-        print(line)
+        # print("testing_output:")
+        # print(line)
         if(count2 % (control_size*2) < 4):
           output_testing[count][count3] = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0])
           count3 = count3 + 1
@@ -150,19 +150,28 @@ class MLPRegressorTorch(nn.Module):
           nn.Linear(input_size, hidden_size),
           nn.Identity(),
           nn.Linear(hidden_size, hidden_size),
-          nn.Identity(),
+          nn.SELU(),
           nn.Linear(hidden_size, hidden_size),
           nn.Identity(),
-          nn.Linear(hidden_size, output_size)
+          nn.Linear(hidden_size, output_size),
         )
           
-            # nn.Linear(512, 512),
-            # nn.ReLU(),
-            # nn.Linear(512, 10),
     def forward(self, x):
         x = self.flatten(x)
-        logits = self.linear_relu_stack1(x)
-        return logits
+        f = self.linear_relu_stack1(x)
+        return f
+    #     self.fc1 = nn.Linear(input_size, hidden_size)
+    #     self.fc2 = nn.Linear(hidden_size, hidden_size)
+    #     self.fc3 = nn.Linear(hidden_size, output_size)
+    #     self.relu = nn.ReLU()
+
+    # def forward(self, x):
+    #     x = self.fc1(x)
+    #     x = self.relu(x)
+    #     x = self.fc2(x)
+    #     x = self.relu(x)
+    #     x = self.fc3(x)
+    #     return x
 
 
 X = Variable(torch.tensor(xy, dtype=torch.float))
@@ -174,8 +183,8 @@ X_Testing = Variable(torch.tensor(xy_testing, dtype=torch.float))
 Y_Testing = Variable(torch.tensor(output_testing, dtype=torch.float))
 
 
-hidden_size = int((X_size)*2/3 + Y_size)
-max_iter=400
+hidden_size = 128;#int((X_size)*2/3 + Y_size)
+max_iter=300
 learning_rate_init=0.0001
 
 snapshot = MLPRegressorTorch(input_size = X_size, hidden_size = hidden_size, output_size=Y_size)
@@ -219,9 +228,12 @@ final_pred_np = final_prediction.clone().detach().numpy()
 # print("training output:")
 # print(Y)
 # print("mean absolute error:")
+print("Mean Absolute Error:")
 print(mean_absolute_error(Y_Testing, final_pred_np))
-
+sample=1
+print("random sample example")
+print(xy[sample])
 print("predicted:")
-print(snapshot(X_Testing)[0])
+print(snapshot(X_Testing)[sample])
 print("actual")
-print(Y_Testing[0])
+print(Y_Testing[sample])

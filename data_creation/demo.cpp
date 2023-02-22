@@ -8,7 +8,7 @@ using namespace std;
 
 int main()
 {	int control_size = 3;
-	int size = 500;
+	int size = 10000;
 	std::vector<Eigen::Vector2d> input(control_size);
 	// input[0] << 3.1, 3.6;
 	// input[1] << 4.3, 5.1;
