@@ -21,21 +21,21 @@ class MLPRegressorTorch(nn.Module):
         self.dropout = nn.Dropout(p=0.8),
         self.flatten = nn.Flatten()
         self.linear_relu_stack1 = nn.Sequential(
-          nn.Linear(input_size, int(hidden_size*2/3)),
+          nn.Linear(input_size, int(hidden_size*4/3)),
           nn.Identity(),
           # nn.Dropout(p=0.5),
-          nn.Linear(int(hidden_size*2/3), int(hidden_size*2/3)),
+          nn.Linear(int(hidden_size*4/3), int(hidden_size*2)),
           nn.SELU(),
-          nn.Linear(int(hidden_size*2/3), hidden_size*2),
+          nn.Linear(int(hidden_size*2), hidden_size*2),
           nn.SELU(),
-          nn.Linear(hidden_size*2, hidden_size*2),
+          nn.Linear(hidden_size*2, int(hidden_size*4/3)),
           nn.SELU(),
           #nn.Dropout(p=0.2),
           # nn.Linear(hidden_size, hidden_size),
           # nn.Hardswish(),
           # nn.Linear(hidden_size, hidden_size),
           # nn.Identity(),
-          nn.Linear(hidden_size*2, output_size),
+          nn.Linear(int(hidden_size*4/3), output_size),
         )
           
     def forward(self, x):
@@ -135,7 +135,7 @@ def reader(control_size, training_size, testing_size):
 
 def main():
   start = time.time() #timer to see how long  things are taking
-  training_size = 100000
+  training_size = 25000
   testing_size = 460
   control_size = 3
   device = torch.device('cuda')
@@ -154,10 +154,10 @@ def main():
   Y_Testing = Variable(torch.tensor(output_testing, dtype=torch.float, device=device))
 
 
-  hidden_size = 128 #int(((X_size) * (Y_size)) * 2/3)
+  hidden_size = 96 #int(((X_size) * (Y_size)) * 2/3)
   print(hidden_size)
   max_iter=5000 #training_size * control_size /150
-  learning_rate_init=0.00005
+  learning_rate_init=0.0001
 
   # net = CNNRegressorTorch(2, 64, control_size * 4)
   # net = net.to(device)
@@ -205,7 +205,7 @@ def main():
           #        fool_me_once = 0
               loss_prev = loss_total
               print ('Iteration %d/%d, Loss: %.4f' %(iteration, max_iter, loss_total))
-          if iteration % 50 == 0:
+          if iteration % 25 == 0:
             print('big lossmark ' + str(big_lossmark) + ' previous trunc = ' + str(math.trunc(big_lossmark)))
             print('loss total ' + str(loss_total) + ' current trunc = ' + str(math.trunc(loss_total)))
             if(math.trunc(big_lossmark) <= math.trunc(loss_total)):
@@ -215,7 +215,7 @@ def main():
             big_lossmark = loss_total
 
 
-  with open('model_pickle3', 'wb') as f:
+  with open('model_pickle3.2', 'wb') as f:
     pickle.dump(snapshot, f)
 
 
