@@ -21,21 +21,24 @@ class MLPRegressorTorch(nn.Module):
         self.dropout = nn.Dropout(p=0.8),
         self.flatten = nn.Flatten()
         self.linear_relu_stack1 = nn.Sequential(
-          nn.Linear(input_size, int(hidden_size*4/3)),
+          nn.Linear(input_size, int(hidden_size)),
           nn.Identity(),
           # nn.Dropout(p=0.5),
-          nn.Linear(int(hidden_size*4/3), int(hidden_size*2)),
-          nn.SELU(),
-          nn.Linear(int(hidden_size*2), hidden_size*2),
-          nn.SELU(),
-          nn.Linear(hidden_size*2, int(hidden_size*4/3)),
-          nn.SELU(),
+          nn.Linear(int(hidden_size), int(hidden_size*3)),
+          nn.ReLU(),
+          nn.Linear(int(hidden_size*3), hidden_size*3),
+          nn.ReLU(),
+          nn.Linear(int(hidden_size*3), int(hidden_size*3)),
+          nn.ReLU(),
+          nn.Linear(int(hidden_size*3), hidden_size*3),
+          nn.ReLU(),
+          nn.Identity(),
           #nn.Dropout(p=0.2),
           # nn.Linear(hidden_size, hidden_size),
           # nn.Hardswish(),
           # nn.Linear(hidden_size, hidden_size),
           # nn.Identity(),
-          nn.Linear(int(hidden_size*4/3), output_size),
+          nn.Linear(int(hidden_size*3), output_size),
         )
           
     def forward(self, x):
@@ -78,7 +81,7 @@ def findall(val, line):
 
 #read training line by line into input and output arrays
 def reader(control_size, training_size, testing_size):
-  f = open('training.txt', 'r')
+  f = open('training5000.txt', 'r')
   training = True
   count, count1, count2 = -1,0,0
   xy = np.ones((training_size, control_size, 2))
@@ -135,7 +138,7 @@ def reader(control_size, training_size, testing_size):
 
 def main():
   start = time.time() #timer to see how long  things are taking
-  training_size = 25000
+  training_size = 1000000
   testing_size = 460
   control_size = 3
   device = torch.device('cuda')
@@ -154,10 +157,10 @@ def main():
   Y_Testing = Variable(torch.tensor(output_testing, dtype=torch.float, device=device))
 
 
-  hidden_size = 96 #int(((X_size) * (Y_size)) * 2/3)
+  hidden_size = 128 #int(((X_size) * (Y_size)) * 2/3)
   print(hidden_size)
   max_iter=5000 #training_size * control_size /150
-  learning_rate_init=0.0001
+  learning_rate_init=0.000001
 
   # net = CNNRegressorTorch(2, 64, control_size * 4)
   # net = net.to(device)
@@ -215,7 +218,7 @@ def main():
             big_lossmark = loss_total
 
 
-  with open('model_pickle3.2', 'wb') as f:
+  with open('model_pickle3.3', 'wb') as f:
     pickle.dump(snapshot, f)
 
 
